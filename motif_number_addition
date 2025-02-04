@@ -41,6 +41,13 @@ for (file_path in file_list) {
   # Assign Song Numbers
   note_level <- note_level %>%
     mutate(`Song No.` = cumsum(ifelse(is.na(time_gap) | time_gap > threshold, 1, 0)))
+
+  # Assign Note numbers for each Song
+  note_level <- note_level %>%
+    mutate(`Song No.` = cumsum(ifelse(is.na(time_gap) | time_gap > threshold, 1, 0))) %>%
+    group_by(`Song No.`) %>%
+    mutate(`Note No.` = row_number()) %>%
+    ungroup()
   
   # Save updated file
   write.table(note_level, output_path, sep = "\t", row.names = FALSE, quote = FALSE)
