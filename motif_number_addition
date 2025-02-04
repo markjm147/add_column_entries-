@@ -1,0 +1,50 @@
+rm(list = ls())
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+
+# Define input and output directories
+input_dir <- "/Users/markmenezes/Raven Pro 1.6/Selections/ISBA_Selections/"
+output_dir <- "/Users/markmenezes/Raven Pro 1.6/Selections/ISBA_Output_folder/"
+
+# Get a list of all text files in the directory
+file_list <- list.files(path = input_dir, pattern = "\\.txt$", full.names = TRUE)
+
+# Loop through each file in the list
+for (file_path in file_list) {
+  # Extract base filename
+  base_name <- tools::file_path_sans_ext(basename(file_path))
+  
+  # Construct output filename
+  output_filename <- paste0(base_name, "_songs.txt")
+  output_path <- file.path(output_dir, output_filename)
+  
+  # Read the TXT file
+  note_level <- read.table(file_path, header = TRUE, sep = "\t", check.names = FALSE)
+  
+  # Convert time columns to numeric
+  note_level <- note_level %>%
+    mutate(
+      `Begin Time (s)` = as.numeric(`Begin Time (s)`),
+      `End Time (s)` = as.numeric(`End Time (s)`)
+    ) %>%
+    arrange(`Begin Time (s)`)  # Ensure sorting before assigning song numbers
+  
+  # Calculate time differences
+  note_level <- note_level %>%
+    mutate(previous_end_time = lag(`End Time (s)`),
+           time_gap = `Begin Time (s)` - previous_end_time)
+  
+  # Define threshold
+  threshold <- 2
+  
+  # Assign Song Numbers
+  note_level <- note_level %>%
+    mutate(`Song No.` = cumsum(ifelse(is.na(time_gap) | time_gap > threshold, 1, 0)))
+  
+  # Save updated file
+  write.table(note_level, output_path, sep = "\t", row.names = FALSE, quote = FALSE)
+  
+  # Print confirmation
+  cat("Processed and saved:", output_path, "\n")
+}
